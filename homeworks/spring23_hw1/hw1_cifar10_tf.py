@@ -18,9 +18,9 @@ from wandb.keras import WandbMetricsLogger
 import tensorflow as tf
 from tensorflow import keras
 from keras import layers
+from keras.layers import Dense, Conv2D, MaxPool2D, Flatten
 import tensorflow_datasets as tfds
 from matplotlib import pyplot as plt
-
 
 
 if __name__ == '__main__':
@@ -36,11 +36,9 @@ if __name__ == '__main__':
 
     """
     Use tfds to load the CIFAR10 dataset and visualize the images and train.
-
     The datasets used are:
     https://www.tensorflow.org/datasets/catalog/cifar10
     https://www.tensorflow.org/datasets/catalog/cifar10_corrupted
-
     tfds.load() whill first check if the dataset is already downloaded to the
     path in `data_dir`. If not, it will download the dataset to that path..
     """
@@ -77,18 +75,30 @@ if __name__ == '__main__':
     ds_cifar10_test = ds_cifar10_test.cache()
     ds_cifar10_test = ds_cifar10_test.prefetch(tf.data.AUTOTUNE)
 
+    
     # Define the model here
     model = tf.keras.models.Sequential([
         keras.Input(shape=(32, 32, 3)),
-        #####################################
-        # Edit code here -- Update the model definition
-        # You will need a dense last layer with 10 output channels to classify the 10 classes
-        # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+        layers.Conv2D(64, (3, 3), activation='relu', padding='same'),
+        layers.Conv2D(64, (3, 3), activation='relu', padding='same'),
+        layers.MaxPooling2D((2, 2), strides=(2, 2)),
+        layers.Dropout(0.25),
+        layers.Conv2D(128, (3, 3), activation='relu', padding='same'),
+        layers.Conv2D(128, (3, 3), activation='relu', padding='same'),
+        layers.MaxPooling2D((2, 2), strides=(2, 2)),
+        layers.Dropout(0.25),
+        layers.Conv2D(256, (3, 3), activation='relu', padding='same'),
+        layers.Conv2D(256, (3, 3), activation='relu', padding='same'),
+        layers.MaxPooling2D((2, 2), strides=(2, 2)),
+        layers.Dropout(0.25),
         layers.Flatten(),
-        layers.Dense(128, activation='relu'),
-        # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        tf.keras.layers.Dense(10)
+        layers.Dropout(0.5),
+        layers.Dense(10, activation='softmax')
     ])
+
+
+
+    
 
     # Log the training hyper-parameters for WandB
     # If you change these in model.compile() or model.fit(), be sure to update them here.
@@ -96,22 +106,22 @@ if __name__ == '__main__':
         #####################################
         # Edit these as desired
         # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-        "learning_rate": 0.001,
+        "learning_rate": 0.0005,
         "optimizer": "adam",
-        "epochs": 5,
-        "batch_size": 32
+        "epochs": 15,
+        "batch_size": 128
         # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     }
 
     model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=.001),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=.0005),
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
         metrics=[tf.keras.metrics.SparseCategoricalAccuracy()],
     )
 
     history = model.fit(
         ds_cifar10_train,
-        epochs=5,
+        epochs=15,
         validation_data=ds_cifar10_test,
         callbacks=[WandbMetricsLogger()]
     )
